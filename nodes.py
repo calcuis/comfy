@@ -1,5 +1,5 @@
 import torch
-import os, sys, json, hashlib, traceback, math, time, random, logging
+import os, sys, json, hashlib, traceback, math, time, random, logging, importlib
 
 from PIL import Image, ImageOps, ImageSequence, ImageFile
 from PIL.PngImagePlugin import PngInfo
@@ -19,7 +19,6 @@ import comfy.clip_vision
 import comfy.model_management
 from comfy.cli_args import args
 
-import importlib
 import folder_paths
 import latent_preview
 import node_helpers
@@ -1746,7 +1745,6 @@ class ImagePadForOutpaint:
 
         return (new_image, mask)
 
-
 NODE_CLASS_MAPPINGS = {
     "KSampler": KSampler,
     "CheckpointLoaderSimple": CheckpointLoaderSimple,
@@ -1877,7 +1875,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
 EXTENSION_WEB_DIRS = {}
 
-
 def get_module_name(module_path: str) -> str:
     """
     Returns the module name based on the given module path.
@@ -1898,7 +1895,6 @@ def get_module_name(module_path: str) -> str:
     if os.path.isfile(module_path):
         base_path = os.path.splitext(base_path)[0]
     return base_path
-
 
 def load_custom_node(module_path: str, ignore=set(), module_parent="custom_nodes") -> bool:
     module_name = os.path.basename(module_path)
@@ -2033,7 +2029,6 @@ def init_builtin_extra_nodes():
             import_failed.append(node_file)
 
     return import_failed
-
 
 def init_extra_nodes(init_custom_nodes=True):
     import_failed = init_builtin_extra_nodes()
