@@ -1,10 +1,9 @@
 import comfy.options
 comfy.options.enable_args_parsing()
 
-import os
+import os, time
 import importlib.util
 import folder_paths
-import time
 from comfy.cli_args import args
 
 def execute_prestartup_script():
