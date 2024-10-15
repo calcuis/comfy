@@ -1,5 +1,4 @@
 import hashlib
-
 from comfy.cli_args import args
 from PIL import ImageFile, UnidentifiedImageError
 
