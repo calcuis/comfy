@@ -1,5 +1,4 @@
 import os, shutil
-
 base_path = os.path.dirname(os.path.realpath(__file__))
 
 def update_windows_updater():
