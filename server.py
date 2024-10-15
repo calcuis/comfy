@@ -1,6 +1,5 @@
 import os, sys, asyncio, traceback, nodes, execution, uuid, urllib, json, glob, struct, ssl, hashlib, logging, mimetypes
-import folder_paths
-import node_helpers
+import folder_paths, node_helpers
 from PIL import Image, ImageOps
 from PIL.PngImagePlugin import PngInfo
 from io import BytesIO
