@@ -1,13 +1,11 @@
 import torch
 from PIL import Image
-import struct
+import struct, logging, folder_paths
 import numpy as np
 from comfy.cli_args import args, LatentPreviewMethod
 from comfy.taesd.taesd import TAESD
 import comfy.model_management
-import folder_paths
 import comfy.utils
-import logging
 
 MAX_PREVIEW_RESOLUTION = 512
 
@@ -34,7 +32,6 @@ class TAESDPreviewerImpl(LatentPreviewer):
         x_sample = self.taesd.decode(x0[:1])[0].movedim(0, 2)
         return preview_to_image(x_sample)
 
-
 class Latent2RGBPreviewer(LatentPreviewer):
     def __init__(self, latent_rgb_factors):
         self.latent_rgb_factors = torch.tensor(latent_rgb_factors, device="cpu")
@@ -43,7 +40,6 @@ class Latent2RGBPreviewer(LatentPreviewer):
         self.latent_rgb_factors = self.latent_rgb_factors.to(dtype=x0.dtype, device=x0.device)
         latent_image = x0[0].permute(1, 2, 0) @ self.latent_rgb_factors
         return preview_to_image(latent_image)
-
 
 def get_previewer(device, latent_format):
     previewer = None
@@ -91,4 +87,3 @@ def prepare_callback(model, steps, x0_output_dict=None):
             preview_bytes = previewer.decode_latent_to_preview_image(preview_format, x0)
         pbar.update_absolute(step + 1, total_steps, preview_bytes)
     return callback
-
