@@ -1,26 +1,18 @@
 from __future__ import annotations
 import argparse
-import logging
-import os
-import re
-import tempfile
-import zipfile
+import os, re, logging, requests
+import tempfile, zipfile
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
 from typing import TypedDict
-
-import requests
 from typing_extensions import NotRequired
 from comfy.cli_args import DEFAULT_VERSION_STRING
 
-
 REQUEST_TIMEOUT = 10  # seconds
-
 
 class Asset(TypedDict):
     url: str
-
 
 class Release(TypedDict):
     id: int
@@ -31,7 +23,6 @@ class Release(TypedDict):
     published_at: str
     body: str
     assets: NotRequired[list[Asset]]
-
 
 @dataclass
 class FrontEndProvider:
@@ -77,7 +68,6 @@ class FrontEndProvider:
                     return release
             raise ValueError(f"Version {version} not found in releases")
 
-
 def download_release_asset_zip(release: Release, destination_path: str) -> None:
     """Download dist.zip from github release."""
     asset_url = None
@@ -106,7 +96,6 @@ def download_release_asset_zip(release: Release, destination_path: str) -> None:
         # Extract the zip file content to the destination path
         with zipfile.ZipFile(tmp_file, "r") as zip_ref:
             zip_ref.extractall(destination_path)
-
 
 class FrontendManager:
     DEFAULT_FRONTEND_PATH = str(Path(__file__).parents[1] / "web")
