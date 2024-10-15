@@ -2,8 +2,7 @@
 #Once the prompt execution is done it downloads the images using the /history endpoint
 
 import websocket #NOTE: websocket-client (https://github.com/websocket-client/websocket-client)
-import uuid
-import json
+import uuid, json
 import urllib.request
 import urllib.parse
 
@@ -161,4 +160,3 @@ images = get_images(ws, prompt)
 #         import io
 #         image = Image.open(io.BytesIO(image_data))
 #         image.show()
-
