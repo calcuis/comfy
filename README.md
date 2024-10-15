@@ -7,4 +7,3 @@ Get the ComfyUI windows portable 7z:
 - run the Batch file (.bat)
 
 ![screenshot](comfy.png)
-[<img src="https://raw.githubusercontent.com/calcuis/comfy/master/comfy.png" width="800" height="500">](https://github.com/calcuis/comfy/blob/main/comfy.png)
