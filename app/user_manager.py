@@ -1,9 +1,5 @@
-import json
-import os
-import re
-import uuid
-import glob
-import shutil
+import json, os, re, uuid
+import glob, shutil
 from aiohttp import web
 from comfy.cli_args import args
 from folder_paths import user_directory
@@ -11,7 +7,6 @@ from .app_settings import AppSettings
 
 default_user = "default"
 users_file = os.path.join(user_directory, "users.json")
-
 
 class UserManager():
     def __init__(self):
