@@ -1,8 +1,6 @@
-import sys, copy, logging
-import threading, heapq, traceback, inspect, nodes
-from typing import List, Literal, NamedTuple, Optional
-
 import torch
+import sys, copy, logging, threading, heapq, traceback, inspect, nodes
+from typing import List, Literal, NamedTuple, Optional
 import comfy.model_management
 
 def get_input_data(inputs, class_def, unique_id, outputs={}, prompt={}, extra_data={}):
