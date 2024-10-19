@@ -3,10 +3,10 @@ torchsde
 torchvision
 torchaudio
 einops
-transformers>=4.28.1
-tokenizers>=0.13.3
+transformers
+tokenizers
 sentencepiece
-safetensors>=0.4.2
+safetensors
 aiohttp
 pyyaml
 Pillow
@@ -14,8 +14,3 @@ scipy
 tqdm
 psutil
 gguf
-
-#non essential dependencies:
-kornia>=0.7.1
-spandrel
-soundfile
