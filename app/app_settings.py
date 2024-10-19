@@ -1,5 +1,7 @@
-import os, json
+import os
+import json
 from aiohttp import web
+
 
 class AppSettings():
     def __init__(self, user_manager):

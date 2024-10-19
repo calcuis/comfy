@@ -1,18 +1,26 @@
 from __future__ import annotations
 import argparse
-import os, re, logging, requests
-import tempfile, zipfile
+import logging
+import os
+import re
+import tempfile
+import zipfile
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import TypedDict
+from typing import TypedDict, Optional
+
+import requests
 from typing_extensions import NotRequired
 from comfy.cli_args import DEFAULT_VERSION_STRING
 
+
 REQUEST_TIMEOUT = 10  # seconds
+
 
 class Asset(TypedDict):
     url: str
+
 
 class Release(TypedDict):
     id: int
@@ -23,6 +31,7 @@ class Release(TypedDict):
     published_at: str
     body: str
     assets: NotRequired[list[Asset]]
+
 
 @dataclass
 class FrontEndProvider:
@@ -68,6 +77,7 @@ class FrontEndProvider:
                     return release
             raise ValueError(f"Version {version} not found in releases")
 
+
 def download_release_asset_zip(release: Release, destination_path: str) -> None:
     """Download dist.zip from github release."""
     asset_url = None
@@ -97,6 +107,7 @@ def download_release_asset_zip(release: Release, destination_path: str) -> None:
         with zipfile.ZipFile(tmp_file, "r") as zip_ref:
             zip_ref.extractall(destination_path)
 
+
 class FrontendManager:
     DEFAULT_FRONTEND_PATH = str(Path(__file__).parents[1] / "web")
     CUSTOM_FRONTENDS_ROOT = str(Path(__file__).parents[1] / "web_custom_versions")
@@ -121,12 +132,13 @@ class FrontendManager:
         return match_result.group(1), match_result.group(2), match_result.group(3)
 
     @classmethod
-    def init_frontend_unsafe(cls, version_string: str) -> str:
+    def init_frontend_unsafe(cls, version_string: str, provider: Optional[FrontEndProvider] = None) -> str:
         """
         Initializes the frontend for the specified version.
 
         Args:
             version_string (str): The version string.
+            provider (FrontEndProvider, optional): The provider to use. Defaults to None.
 
         Returns:
             str: The path to the initialized frontend.
@@ -139,7 +151,7 @@ class FrontendManager:
             return cls.DEFAULT_FRONTEND_PATH
 
         repo_owner, repo_name, version = cls.parse_version_string(version_string)
-        provider = FrontEndProvider(repo_owner, repo_name)
+        provider = provider or FrontEndProvider(repo_owner, repo_name)
         release = provider.get_release(version)
 
         semantic_version = release["tag_name"].lstrip("v")
@@ -147,15 +159,21 @@ class FrontendManager:
             Path(cls.CUSTOM_FRONTENDS_ROOT) / provider.folder_name / semantic_version
         )
         if not os.path.exists(web_root):
-            os.makedirs(web_root, exist_ok=True)
-            logging.info(
-                "Downloading frontend(%s) version(%s) to (%s)",
-                provider.folder_name,
-                semantic_version,
-                web_root,
-            )
-            logging.debug(release)
-            download_release_asset_zip(release, destination_path=web_root)
+            try:
+                os.makedirs(web_root, exist_ok=True)
+                logging.info(
+                    "Downloading frontend(%s) version(%s) to (%s)",
+                    provider.folder_name,
+                    semantic_version,
+                    web_root,
+                )
+                logging.debug(release)
+                download_release_asset_zip(release, destination_path=web_root)
+            finally:
+                # Clean up the directory if it is empty, i.e. the download failed
+                if not os.listdir(web_root):
+                    os.rmdir(web_root)
+
         return web_root
 
     @classmethod
