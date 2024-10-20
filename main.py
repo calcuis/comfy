@@ -202,7 +202,6 @@ if __name__ == "__main__":
             utils.extra_config.load_extra_path_config(config_path)
 
     nodes.init_extra_nodes(init_custom_nodes=not args.disable_all_custom_nodes)
-
     cuda_malloc_warning()
 
     server.add_routes()
