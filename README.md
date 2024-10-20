@@ -17,4 +17,4 @@ Run gguf model (flux1 as an example below):
 - run the .bat file under the main directory (it will activate the py backend as well as the js frontend)
 - drag [workflow-gguf.json](https://github.com/calcuis/comfy/blob/main/workflow-gguf.json) to the activated browser
 
-![screenshot](gguf.png)
+![screenshot](https://raw.githubusercontent.com/calcuis/gguf-comfy/master/gguf.png)
