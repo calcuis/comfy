@@ -18,3 +18,4 @@ Run gguf model (flux1 as an example below):
 - drag [workflow-gguf.json](https://github.com/calcuis/comfy/blob/main/workflow-gguf.json) to the activated browser
 
 ![screenshot](https://raw.githubusercontent.com/calcuis/gguf-comfy/master/gguf.png)
+##### Reference: [gguf-comfy](https://github.com/calcuis/gguf-comfy)
