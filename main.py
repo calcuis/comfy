@@ -1,16 +1,12 @@
 import comfy.options
 comfy.options.enable_args_parsing()
 
-import os
+import os, time
 import importlib.util
 import folder_paths
-import time
 from comfy.cli_args import args
 from app.logger import setup_logger
-
-
 setup_logger(log_level=args.verbose)
-
 
 def execute_prestartup_script():
     def execute_script(script_path):
@@ -54,7 +50,6 @@ def execute_prestartup_script():
 
 execute_prestartup_script()
 
-
 # Main code
 import asyncio
 import itertools
@@ -86,7 +81,6 @@ if args.windows_standalone_build:
         pass
 
 import comfy.utils
-
 import execution
 import server
 from server import BinaryEventTypes
@@ -165,7 +159,6 @@ async def run(server, address='', port=8188, verbose=True, call_on_start=None):
         addresses.append((addr, port))
     await asyncio.gather(server.start_multi_address(addresses, call_on_start), server.publish_loop())
 
-
 def hijack_progress(server):
     def hook(value, total, preview_image):
         comfy.model_management.throw_exception_if_processing_interrupted()
@@ -176,12 +169,10 @@ def hijack_progress(server):
             server.send_sync(BinaryEventTypes.UNENCODED_PREVIEW_IMAGE, preview_image, server.client_id)
     comfy.utils.set_progress_bar_global_hook(hook)
 
-
 def cleanup_temp():
     temp_dir = folder_paths.get_temp_directory()
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir, ignore_errors=True)
-
 
 if __name__ == "__main__":
     if args.temp_directory:
