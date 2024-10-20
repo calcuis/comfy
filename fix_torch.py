@@ -1,9 +1,5 @@
 import importlib.util
-import shutil
-import os
-import ctypes
-import logging
-
+import os, shutil, ctypes, logging
 
 torch_spec = importlib.util.find_spec("torch")
 for folder in torch_spec.submodule_search_locations:
