@@ -19,3 +19,5 @@ Run gguf model (flux1 as an example below):
 
 ![screenshot](https://raw.githubusercontent.com/calcuis/gguf-comfy/master/gguf.png)
 ##### Reference: [gguf-comfy](https://github.com/calcuis/gguf-comfy)
+
+![screenshot](sd3.png)
