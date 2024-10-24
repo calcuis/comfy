@@ -21,3 +21,4 @@ Run gguf model (flux1 as an example below):
 ##### Reference: [gguf-comfy](https://github.com/calcuis/gguf-comfy)
 
 ![screenshot](sd3.png)
+Stable Diffusion 3.5 is now supported
