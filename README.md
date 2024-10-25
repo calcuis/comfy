@@ -31,4 +31,4 @@ Run sd3 model following the step-by-step guide below:
 - run the .bat file under the main directory (it will activate the py backend as well as the js frontend)
 - drag [workflow-sd3.5-gguf.json](https://github.com/calcuis/comfy/blob/main/workflow-sd3.5-gguf.json) to the activated browser
 
-##### Reference: [stability-ai](https://github.com/Stability-AI)
+##### Reference: [stability-ai](https://github.com/Stability-AI/sd3.5)
