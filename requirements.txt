@@ -13,4 +13,4 @@ Pillow
 scipy
 tqdm
 psutil
-gguf
+gguf-connector
