@@ -1,19 +1,19 @@
-import torch, copy, logging, gguf, folder_paths
+import torch
+import copy, logging, folder_paths
 import comfy.sd
 import comfy.utils
 import comfy.model_management
 import comfy.model_patcher
 from .ops import GGMLTensor, GGMLOps, move_patch_to_device
 from .dequant import is_quantized, is_torch_compatible
-from .ops import GGMLTensor, GGMLOps, move_patch_to_device
-from .dequant import is_quantized, is_torch_compatible
+from gguf_connector import reader as gr
 
 if "unet_gguf" not in folder_paths.folder_names_and_paths:
     orig = folder_paths.folder_names_and_paths.get("diffusion_models", folder_paths.folder_names_and_paths.get("unet", [[], set()]))
     folder_paths.folder_names_and_paths["unet_gguf"] = (orig[0], {".gguf"})
 
 if "clip_gguf" not in folder_paths.folder_names_and_paths:
-    orig = folder_paths.folder_names_and_paths.get("clip", [[], set()])
+    orig = folder_paths.folder_names_and_paths.get("text_encoders", folder_paths.folder_names_and_paths.get("clip", [[], set()]))
     folder_paths.folder_names_and_paths["clip_gguf"] = (orig[0], {".gguf"})
 
 def gguf_sd_loader_get_orig_shape(reader, tensor_name):
@@ -21,8 +21,7 @@ def gguf_sd_loader_get_orig_shape(reader, tensor_name):
     field = reader.get_field(field_key)
     if field is None:
         return None
-    # Has original shape metadata, so we try to decode it.
-    if len(field.types) != 2 or field.types[0] != gguf.GGUFValueType.ARRAY or field.types[1] != gguf.GGUFValueType.INT32:
+    if len(field.types) != 2 or field.types[0] != gr.GGUFValueType.ARRAY or field.types[1] != gr.GGUFValueType.INT32:
         raise TypeError(f"Bad original shape metadata for {field_key}: Expected ARRAY of INT32, got {field.types}")
     return torch.Size(tuple(int(field.parts[part_idx][0]) for part_idx in field.data))
 
@@ -30,9 +29,8 @@ def gguf_sd_loader(path, handle_prefix="model.diffusion_model."):
     """
     Read state dict as fake tensors
     """
-    reader = gguf.GGUFReader(path)
+    reader = gr.GGUFReader(path)
 
-    # filter and strip prefix
     has_prefix = False
     if handle_prefix is not None:
         prefix_len = len(handle_prefix)
@@ -48,40 +46,36 @@ def gguf_sd_loader(path, handle_prefix="model.diffusion_model."):
             sd_key = tensor_name[prefix_len:]
         tensors.append((sd_key, tensor))
 
-    # detect and verify architecture
     compat = None
     arch_str = None
     arch_field = reader.get_field("general.architecture")
     if arch_field is not None:
-        if len(arch_field.types) != 1 or arch_field.types[0] != gguf.GGUFValueType.STRING:
+        if len(arch_field.types) != 1 or arch_field.types[0] != gr.GGUFValueType.STRING:
             raise TypeError(f"Bad type for GGUF general.architecture key: expected string, got {arch_field.types!r}")
         arch_str = str(arch_field.parts[arch_field.data[-1]], encoding="utf-8")
-        if arch_str not in {"flux", "sd1", "sdxl", "sd3", "t5", "t5encoder"}:
+        if arch_str not in {"flux", "sd1", "sdxl", "sd3", "aura", "t5", "t5encoder"}:
             raise ValueError(f"Unexpected architecture type in GGUF file, expected one of flux, sd1, sdxl, t5encoder but got {arch_str!r}")
-    else: # stable-diffusion.cpp
-        # import here to avoid changes to convert.py breaking regular models
+    else:
         from .tools.convert import detect_arch
         arch_str = detect_arch(set(val[0] for val in tensors)).arch
         compat = "sd.cpp"
 
-    # main loading loop
     state_dict = {}
     qtype_dict = {}
     for sd_key, tensor in tensors:
         tensor_name = tensor.name
         tensor_type_str = str(tensor.tensor_type)
-        torch_tensor = torch.from_numpy(tensor.data) # mmap
+        torch_tensor = torch.from_numpy(tensor.data)
 
         shape = gguf_sd_loader_get_orig_shape(reader, tensor_name)
         if shape is None:
             shape = torch.Size(tuple(int(v) for v in reversed(tensor.shape)))
-            # Workaround for stable-diffusion.cpp SDXL detection.
             if compat == "sd.cpp" and arch_str == "sdxl":
                 if any([tensor_name.endswith(x) for x in (".proj_in.weight", ".proj_out.weight")]):
                     while len(shape) > 2 and shape[-1] == 1:
                         shape = shape[:-1]
 
-        if tensor.tensor_type in {gguf.GGMLQuantizationType.F32, gguf.GGMLQuantizationType.F16}:
+        if tensor.tensor_type in {gr.GGMLQuantizationType.F32, gr.GGMLQuantizationType.F16}:
             torch_tensor = torch_tensor.view(*shape)
         state_dict[sd_key] = GGMLTensor(torch_tensor, tensor_type=tensor.tensor_type, tensor_shape=shape)
         qtype_dict[tensor_type_str] = qtype_dict.get(tensor_type_str, 0) + 1
@@ -89,7 +83,6 @@ def gguf_sd_loader(path, handle_prefix="model.diffusion_model."):
     print("\nggml_sd_loader:")
     for k,v in qtype_dict.items():
         print(f" {k:30}{v:3}")
-
     return state_dict
 
 clip_sd_map = {
@@ -119,7 +112,6 @@ def gguf_clip_loader(path):
         sd[k] = v
     return sd
 
-# TODO: Temporary fix for now
 import collections
 class GGUFModelPatcher(comfy.model_patcher.ModelPatcher):
     patch_on_device = False
@@ -168,7 +160,6 @@ class GGUFModelPatcher(comfy.model_patcher.ModelPatcher):
                 patches = getattr(p, "patches", [])
                 if len(patches) > 0:
                     p.patches = []
-        # TODO: Find another way to not unload after patches
         return super().unpatch_model(device_to=device_to, unpatch_weights=unpatch_weights)
 
     mmap_released = False
@@ -192,7 +183,6 @@ class GGUFModelPatcher(comfy.model_patcher.ModelPatcher):
             if linked:
                 print(f"Attempting to release mmap ({len(linked)})")
                 for n, m in linked:
-                    # TODO: possible to OOM, find better way to detach
                     m.to(self.load_device).to(self.offload_device)
             self.mmap_released = True
 
@@ -202,7 +192,6 @@ class GGUFModelPatcher(comfy.model_patcher.ModelPatcher):
         for k in self.patches:
             n.patches[k] = self.patches[k][:]
         n.patches_uuid = self.patches_uuid
-
         n.object_patches = self.object_patches.copy()
         n.model_options = copy.deepcopy(self.model_options)
         n.backup = self.backup
@@ -242,7 +231,6 @@ class UnetLoaderGGUF:
         else:
             ops.Linear.patch_dtype = getattr(torch, patch_dtype)
 
-        # init model
         unet_path = folder_paths.get_full_path("unet", unet_name)
         sd = gguf_sd_loader(unet_path)
         model = comfy.sd.load_diffusion_model_state_dict(
@@ -276,6 +264,8 @@ clip_name_dict = {
     "sdxl": comfy.sd.CLIPType.STABLE_DIFFUSION,
     "sd3": comfy.sd.CLIPType.SD3,
     "flux": comfy.sd.CLIPType.FLUX,
+    "mochi": getattr(comfy.sd.CLIPType, "MOCHI", None),
+    "ltxv": getattr(comfy.sd.CLIPType, "LTXV", None),
 }
 
 class CLIPLoaderGGUF:
@@ -284,7 +274,7 @@ class CLIPLoaderGGUF:
         return {
             "required": {
                 "clip_name": (s.get_filename_list(),),
-                "type": (["stable_diffusion", "stable_cascade", "sd3", "stable_audio"],),
+                "type": (["stable_diffusion", "stable_cascade", "sd3", "stable_audio", "mochi", "ltxv"],),
             }
         }
 
@@ -308,7 +298,7 @@ class CLIPLoaderGGUF:
             else:
                 sd = comfy.utils.load_torch_file(p, safe_load=True)
                 clip_data.append(
-                    {k:GGMLTensor(v, tensor_type=gguf.GGMLQuantizationType.F16, tensor_shape=v.shape) for k,v in sd.items()}
+                    {k:GGMLTensor(v, tensor_type=gr.GGMLQuantizationType.F16, tensor_shape=v.shape) for k,v in sd.items()}
                 )
         return clip_data
 
@@ -324,7 +314,6 @@ class CLIPLoaderGGUF:
         )
         clip.patcher = GGUFModelPatcher.clone(clip.patcher)
 
-        # for some reason this is just missing in some SAI checkpoints
         if getattr(clip.cond_stage_model, "clip_l", None) is not None:
             if getattr(clip.cond_stage_model.clip_l.transformer.text_projection.weight, "tensor_shape", None) is None:
                 clip.cond_stage_model.clip_l.transformer.text_projection = comfy.ops.manual_cast.Linear(768, 768)
